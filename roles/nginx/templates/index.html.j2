@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Welcome!</title>
+    <style>
+      body {
+          width: 48em;
+          margin: 0 auto;
+          font-family: Tahoma, Verdana, Arial, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+  <h1>Welcome to the management system!</h1>
+  <p>Lower are listed links to the installed services.</p>
+
+{% for service in service_sources %}
+  <p>
+  {{ service['service'] }}:
+  <a href="http://{{ service['source'] }}">{{ service['source'] }}</a>
+  <br/>
+{% endfor %}
+
+  </body>
+</html>
+

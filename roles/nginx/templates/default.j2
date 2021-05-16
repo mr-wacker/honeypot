@@ -1,0 +1,81 @@
+server {
+	listen 80 default_server;
+        listen [::]:80 default_server;
+
+        # Open port 8080 to allow nginx exporters to query the web server.
+
+	listen 8080 default_server;
+        listen [::]:8080 default_server;
+
+	server_name _;
+
+
+	{% if inventory_hostname in groups['web-servers'] %}
+	
+        # Updated index.html for the Nginx on the management system.
+        
+        root /var/www/html;
+        index index.html index.htm index.nginx-debian.html;
+        
+        {% endif %}
+
+
+
+	{%if inventory_hostname in groups['vuln-servers']%}
+        
+        # A configuration for a vulnerable WordPress app.
+        
+        root /var/www/html;
+        
+        index index.php;
+
+        location = /favicon.ico {
+                log_not_found off;
+                access_log off;
+        }
+
+        location = /robots.txt {
+                allow all;
+                log_not_found off;
+                access_log off;
+        }
+
+        location / {
+                # This is cool because no php is touched for static content.
+                # include the "?$args" part so non-default permalinks doesn't break when using query string
+                try_files $uri $uri/ /index.php$is_args$args;
+        }
+
+        location ~ \.php$ {
+                ### NOTE: You should have "cgi.fix_pathinfo = 0;" in php.ini
+                fastcgi_pass unix:/var/run/php/php7.3-fpm.sock;
+                include fastcgi_params;
+                fastcgi_intercept_errors on;
+                include snippets/fastcgi-php.conf;
+
+                #The following parameter can be also included in fastcgi_params file
+                fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        }
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+                expires max;
+                log_not_found off;
+        }
+
+        {% endif %}
+
+
+
+        {% if inventory_hostname in groups['grafana'] %}
+        # Reverse proxy for Grafana.
+
+        location /grafana {
+     	        proxy_pass http://localhost:{{ docker_grafana_port }};
+	}
+        {% endif %}
+
+
+
+
+}
+

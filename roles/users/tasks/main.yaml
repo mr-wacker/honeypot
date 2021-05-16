@@ -1,0 +1,15 @@
+---
+
+- name: Ensure the group "cowrie" exists with a correct GID
+  group:
+    name: cowrie
+    state: present
+    gid: 1002
+
+- name: Add the user "cowrie" with a specific UID and a primary group of "cowrie"
+  user:
+    name: cowrie
+    comment: cowrie the honeypot
+    uid: 1002
+    group: cowrie
+

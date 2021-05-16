@@ -1,0 +1,27 @@
+{% if inventory_hostname in groups['db-masters'] %}
+
+# Configuration for the MariaDB master instances
+
+[mysqld]
+
+server-id = {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'].split('.')[-1] }}
+log-bin = /var/log/mysql/mysql-bin.log
+binlog-do-db = {{ honeypot_database }}
+
+{% endif %}
+
+
+
+{% if inventory_hostname in groups['db-replicas'] %}
+
+# Configuration for the MariaDB slave instances
+
+[mysqld]
+
+server-id = {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'].split('.')[-1] }}
+log-bin = /var/log/mysql/mysql-bin.log
+relay-log = /var/log/mysql/mysql-relay.log
+replicate-do-db = {{ honeypot_database }}
+
+{% endif %}
+

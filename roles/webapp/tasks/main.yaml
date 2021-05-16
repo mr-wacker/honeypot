@@ -1,0 +1,124 @@
+---
+
+# Install Essential Packages
+
+- name: Install PHP Packages
+  apt:
+    name: 
+      -  php-curl 
+      - php-gd 
+      - php-intl 
+      - php-mbstring 
+      - php-soap 
+      - php-xml 
+      - php-xmlrpc 
+      - php-zip
+      - php7.3-fpm
+      - php7.3-cli
+      - php7.3-common
+      - php7.3-mysql
+      - php7.3
+
+# WordPress MariaDB
+
+- name: Create a new database with name wordpress
+  mysql_db:
+    encoding: utf8
+    name: "{{ wordpress_database }}"
+    login_unix_socket: /var/run/mysqld/mysqld.sock 
+    state: present
+
+- name: Create database user with limited privileges
+  mysql_user:
+    name: "{{ wordpress_database_user }}"
+    host: "%"
+    password: "{{ wordpress_database_user_password }}"
+    priv: '{{ wordpress_database }}.*:ALL'
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  no_log: true
+
+# NGINX
+
+- name: Ensure Nginx is installed
+  apt:
+    name: 
+    - nginx
+
+- name: Copy Nginx default config to sites-enabled
+  template:
+    src: default.j2
+    dest: /etc/nginx/sites-enabled/default
+  notify: 
+    - restart nginx
+    - restart php
+
+- name: start nginx
+  service:
+    name: nginx
+    state: started 
+    enabled: yes
+  become: yes
+  notify: restart nginx
+
+# - name: Unarchive WordPress Package
+#   unarchive:
+#     src: https://wordpress.org/latest.tar.gz
+#     dest: /var/www/
+#     remote_src: yes
+
+# - name: Move wordpress to html
+#   command: mv /var/www/wordpress/* /var/www/html
+
+- name: change permission for www-data
+  file: 
+    path: /var/www/html/
+    owner: www-data
+    group: www-data
+    recurse: yes
+
+- name: add vulnerable webapp index.php
+  template:
+    src: index.php
+    dest: /var/www/html/wp-content/index.php
+    owner: www-data
+    group: www-data
+
+- name: add vulnerable webapp showFiles.php
+  template:
+    src: showFiles.php
+    dest: /var/www/html/wp-content/showFiles.php
+    owner: www-data
+    group: www-data
+
+- name: add upload dir
+  file:
+    state: directory
+    path: /var/www/html/wp-content/appUploads
+    owner: www-data
+    group: www-data
+
+- name: copy wp-config
+  template:
+    src: wp-config.php.j2
+    dest: /var/www/html/wp-config.php
+  notify: 
+  - restart nginx
+  - restart php
+
+- name: change permission for wp-config.php
+  file: 
+    path: /var/www/html/wp-config.php
+    owner: www-data
+    group: www-data
+    mode: 0600
+
+- name: appropriate permission of files
+  shell: 
+    cmd: find /var/www/html/ -type f -exec chmod 644 {} \;
+
+- name: appropriate permission of directories
+  shell: 
+    cmd: find /var/www/html/ -type d -exec chmod 755 {} \;
+
+### add kirill's ./files ... 
+### they should be located under /var/www/html/wp-content/uploads/

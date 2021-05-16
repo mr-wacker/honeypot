@@ -1,0 +1,123 @@
+---
+
+# These packages are needed to enable ansible.mysql_user module.
+
+- name: Install Pymsql and sqlclient-dev
+  apt:
+    name: 
+      - python3-pymysql
+      - default-libmysqlclient-dev
+    state: latest
+
+# Prepare directories for Docker container mounting and configuration.
+
+- name: Create a Docker MariaDB directories for mounting
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    recurse: true
+  loop:
+    - /opt/docker/mariadb/config
+    - /opt/docker/mariadb/dump
+
+# Transfer MariaDB configuration.
+
+- name: Copy Docker MariaDB configuration
+  template:
+    src: override.cnf.j2
+    dest: /opt/docker/mariadb/config/override.cnf
+
+# Setup MariaDB containers.
+
+- name: Pull a MariaDB Docker image
+  docker_image:
+    name: mariadb
+    source: pull
+
+- name: Setup a MariaDB container
+  docker_container:
+    name: mariadb
+    image: mariadb
+    network_mode: host
+    env:
+      MYSQL_ROOT_PASSWORD: "{{ mariadb_root_password }}"
+#    ports:
+#      - "{{ mariadb_port }}:{{ docker_mariadb_port }}"
+    volumes: 
+      - /opt/docker/mariadb/config:/etc/mysql/conf.d
+    restart_policy: always
+
+- name: Sleep for 15 seconds to let container be setup
+  wait_for:
+    timeout: 15
+
+# Setup a Cowrie honeypot user.
+
+- name: Create a Cowrie honeypot user 
+  mysql_user:
+    name: "{{ honeypot_database_user }}"
+    password: "{{ honeypot_database_user_password }}"
+#    priv: "{{ honeypot_database }}.*:INSERT,SELECT,UPDATE"
+    priv: "{{ honeypot_database }}.*:INSERT,SELECT,UPDATE"
+    host: "%"
+    login_user : root
+    login_password: "{{ mariadb_root_password }}"
+  no_log: false
+
+# Transfer a Cowrie honeypot database setup script.
+
+- name: Copy a Cowrie honeypot database dump file
+  copy:
+    src: cowrie_database_setup.sql
+    dest: /opt/docker/mariadb/dump
+  when:  inventory_hostname == groups['db-masters'][0]
+
+- name: Restore database
+  mysql_db:
+    name: cowrie
+    state: import
+    login_password: "{{ mariadb_root_password }}"
+    login_user: root
+    target: /opt/docker/mariadb/dump/cowrie_database_setup.sql
+    login_host: "{{ mariadb_master }}" 
+  ignore_errors: yes
+  when: inventory_hostname == groups['db-masters'][0]
+
+# - name: delete database dump file
+#   file:
+#     path: /opt/docker/mariadb/dump
+#     state: absent
+#     when: inventory_hostname == groups['db-masters'][0]
+   
+
+# clean
+
+# Setup a MariaDB replication user and configure replication on the slave MariaDB instance.
+
+- name: Create a MariaDB replication user
+  mysql_user:
+    name: "{{ mariadb_replication_user }}"
+    password: "{{ mariadb_replication_password }}"
+    priv: "*.*:REPLICATION SLAVE"
+    host: "%"
+    login_user : root
+    login_password: "{{ mariadb_root_password }}"
+  no_log: false
+  notify:
+    - Stop MariaDB slave thread
+    - Change MariaDB master thread to use replication
+    - Reset MariaDB slave thread
+    - Start MariaDB slave thread
+
+# Before modifying MariaDB master - run handlers.
+
+- name: Execute handlers preemptively
+  meta: flush_handlers
+
+# Import a Cowrie database.
+
+# - name: Import a Cowrie honeypot database dump file on a master instance
+#   shell: docker exec -i mariadb sh -c 'exec mysql -uroot -p"{{ mariadb_root_password }}"' < /opt/docker/mariadb/dump/cowrie_database_setup.sql
+#   when: inventory_hostname == groups['db-masters'][0]

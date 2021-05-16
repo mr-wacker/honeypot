@@ -1,0 +1,9 @@
+# Query listed DNS server when a request is received.
+
+{% for vm in groups['dns-slaves'] %}
+	nameserver {{ hostvars[vm]['ansible_default_ipv4']['address'] }}
+{% endfor %}
+
+# Check if the requested resolution falls under the specified domain.
+search {{ fqdn }}.
+

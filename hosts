@@ -1,0 +1,77 @@
+#remote_node ansible_host=192.168.181.168 ansible_port=22 ansible_ssh_user=student ansible_python_interpreter=python3 ansible_ssh_private_key_file=./id_rsa
+
+# DNS Master, Honeypot, MariaDB master.
+vm1 ansible_host=192.168.181.160 ansible_port=22 ansible_ssh_user=student ansible_python_interpreter=python3 ansible_ssh_private_key_file=./vm1.key
+
+# DNS Slave, MariaDB Replica.
+vm2 ansible_host=192.168.181.154 ansible_port=22 ansible_ssh_user=student ansible_python_interpreter=python3 ansible_ssh_private_key_file=./vm2.key
+
+# DNS Slave, Grafana and Nginx.
+vm3 ansible_host=192.168.180.130 ansible_port=22 ansible_ssh_user=student ansible_python_interpreter=python3 ansible_ssh_private_key_file=./vm3.key
+ 
+# vm4 
+#vm4 ansible_host=192.168.180.126 ansible_port=22 ansible_ssh_user=student ansible_python_interpreter=python3 ansible_ssh_private_key_file=./vm4.key
+
+[remote_server]
+#remote_node
+
+[localhost]
+#127.0.0.1  ansible_connection=local
+
+[internal]
+vm1
+
+# DNS server groups.
+
+[dns-masters]
+vm1
+
+[dns-slaves]
+vm2
+vm3
+
+[dns-servers:children]
+dns-masters
+dns-slaves
+
+[dns-config]
+vm1
+vm2
+vm3
+
+# Web and Grafana server groups.
+
+[web-servers]
+vm3
+
+[grafana]
+vm3
+
+# Docker server group.
+
+[docker]
+vm1
+vm2
+vm3
+
+# Database server groups.
+
+[db-replicas]
+vm2
+
+[db-masters]
+vm1
+
+[db-servers:children]
+db-replicas
+db-masters
+
+# Honeypot server group.
+
+[honeypot]
+vm1
+
+# Wordpress vulnerable website
+
+[vuln-servers]
+# vm4

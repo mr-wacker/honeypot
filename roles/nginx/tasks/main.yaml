@@ -1,0 +1,31 @@
+---
+
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: latest
+
+- name: Change Nginx's default configuration
+  template:
+    src: default.j2
+    dest: /etc/nginx/sites-available/default
+  notify: Restart Nginx
+
+# Updated index.html for the Nginx on the management system.
+- name: Update HTML page for the Nginx
+  template:
+    src: index.html.j2
+    dest: /var/www/html/index.nginx-debian.html
+  when: inventory_hostname == groups['web-servers'][0]
+
+# Before starting the service - run handlers.
+
+- name: Execute handlers preemptively
+  meta: flush_handlers
+
+- name: Check if the service is started and if it is not, start it
+  service:
+    name: nginx
+    state: started
+    enabled: yes
+

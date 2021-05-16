@@ -1,0 +1,20 @@
+# Allow requests from a limited list of networks.
+
+acl allowed_networks { {%- for network in allowed_networks -%}
+			  {{ network }};
+			{%- endfor -%}
+		      };
+
+# Configure DNS forwarders.
+
+options {
+    directory "/var/cache/bind";
+    forwarders {
+      {%- for address in dns_forwarders -%}
+        {{ address }};
+      {%- endfor -%}
+    };
+    dnssec-validation no;
+    auth-nxdomain no;    # conform to RFC1053
+};
+

@@ -1,0 +1,55 @@
+---
+
+# Docker variables.
+
+docker_ssh_honeypot_port: 2222
+ssh_honeypot_port: 122
+
+docker_grafana_port: 3000
+grafana_port: 3000
+
+docker_mariadb_port: 3306
+mariadb_port: 3306
+
+localhost: 127.0.0.1
+
+# DNS resolution parameters
+
+dns_forwarders:
+  - 192.168.181.1
+
+allowed_networks:
+  - 192.168.181.0/24
+  - 192.168.180.0/24
+  - 127.0.0.0/8
+  - 172.17.0.0/16
+
+mail_subdomain: mail
+domain_database: db.main
+
+#etc/bind/*
+fqdn: honeypot.ee
+domain: ee
+
+dns_record:
+ - name: remote_server
+   type: A
+   ipaddress: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+
+# DNS keys for master and slaves authentication.
+
+dns_transfer_key_name: transfer.key
+dns_transfer_key: O/XW2qbJ8Vbok1DoaWoy8sQotx4+YCUnuluHwPdc4nMhu0YVdPSmKNEuPLcufgRPbnmsKIFntdBghrnUvY0RBw==
+
+dns_update_key_name: nsupdate.key
+dns_update_key: 8jCGZuVXEEcpHEYaAlCEo3D4TEk0QcZm4XUk6gRQ7/4Ija4rnCpvssL8Hb5N56rI2zcldnIUHgvwMyICi9LGbQ==
+
+# Web page links
+
+service_sources:
+
+  - service: Grafana
+    source: "{{ ansible_host }}:80/grafana"
+
+
+mariadb_master: vm1.honeypot.ee

@@ -1,0 +1,62 @@
+---
+
+- name: Install Bind9 DNS and dnspython
+  apt:
+    name:
+      - bind9
+      - python3-dnspython
+    state: latest
+
+- name: Transfer authentication keys
+  copy:
+    src: "{{ item }}"
+    dest: "/etc/bind/{{ item }}"
+  loop:
+    - transfer.key
+    - nsupdate.key
+
+- name: Update Bind9 main configuration to include keys
+  lineinfile:
+    path: /etc/bind/named.conf
+    line: "{{ item }}"
+    insertafter: EOF
+  loop:
+    - include "/etc/bind/transfer.key";
+    - include "/etc/bind/nsupdate.key";
+  notify: Restart Bind9
+
+- name: Override Bind9 configuration
+  template:
+    src: named.conf.options.j2
+    dest: /etc/bind/named.conf.options
+  notify: Restart Bind9
+
+- name: Override Bind9 zones configuration
+  template:
+    src: named.conf.local.j2
+    dest: /etc/bind/named.conf.local  
+  notify: Restart Bind9
+
+- name: Configure master zone
+  template:
+    src: db.forward.j2
+    dest: "/var/lib/bind/{{ domain_database }}"
+  notify: Reload rndc
+  when: inventory_hostname in groups['dns-masters']
+
+- name: Execute handlers preemptively
+  meta: flush_handlers
+
+- name: Check if the service is started and if it is not, start it
+  service:
+    name: bind9
+    state: started
+    enabled: yes
+
+# - name: Open firewall port
+#   firewalld:
+#     service: dns
+#     permanent: true
+#     state: enabled
+#     immediate: yes
+

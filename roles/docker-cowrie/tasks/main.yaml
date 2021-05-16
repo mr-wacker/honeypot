@@ -1,0 +1,58 @@
+---
+
+# Prepare directories for Docker container mounting and configuration.
+
+- name: Create a directory for Docker honeypot volumes, if it does not exist
+  file:
+    path: /opt/docker/honeypot
+    state: directory
+    owner: cowrie
+    group: cowrie
+    mode: '0755'
+#    recurse: true
+
+#- name: Create a directory for logs if it does not exist
+#  file:
+#    path: /var/log/honeypotdb
+#    owner: cowrie
+#    group: cowrie
+#    state: directory
+#    mode: '0755'
+
+- name: Copy a Cworie honeypot configuration file cowrie.cfg
+  template:
+    src: cowrie.cfg.j2
+    dest: /opt/docker/honeypot/cowrie.cfg
+    owner: cowrie
+    group: cowrie
+    mode: '0644'
+
+- name: Copy a Cowrie honeypot user configuration file userdb.txt
+  template:
+    src: userdb.txt.j2
+    dest: /opt/docker/honeypot/userdb.txt
+    owner: cowrie
+    group: cowrie
+    mode: '0644'
+
+# Setup a Cowrie honeypot container.
+
+- name: Pull a Cowrie honeypot Docker image
+  docker_image:
+    name: setana/setana
+#    name: setana/setana
+    source: pull
+
+- name: Setup a Cowrie honeypot container
+  docker_container:
+    name: cowrie
+#    name: cowrie-setana
+    image: setana/setana
+    network_mode: host
+#    image: setana/setana # https://hub.docker.com/r/setana/setana Docker Image for School's Project
+    volumes: 
+      - /opt/docker/honeypot:/cowrie/cowrie-git/etc
+#    ports:
+#      - "{{ ssh_honeypot_port }}:{{ docker_ssh_honeypot_port }}"
+    restart_policy: always
+

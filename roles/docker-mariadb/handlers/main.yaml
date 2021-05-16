@@ -1,0 +1,35 @@
+---
+
+# Automation of replication on the replica MariaDB container.
+
+- name: Stop MariaDB slave thread
+  mysql_replication:
+    mode: stopslave
+    login_user : root
+    login_password: "{{ mariadb_root_password }}"
+  when: inventory_hostname == groups['db-replicas'][0]
+
+- name: Change MariaDB master thread to use replication
+  mysql_replication:
+    mode: changemaster
+    master_host: "{{ groups['db-masters'][0] }}"
+    master_user: "{{ mariadb_replication_user }}"
+    master_password: "{{ mariadb_replication_password }}"
+    login_user : root
+    login_password: "{{ mariadb_root_password }}"
+  when: inventory_hostname == groups['db-replicas'][0]
+
+- name: Reset MariaDB slave thread
+  mysql_replication:
+    mode: resetslave
+    login_user : root
+    login_password: "{{ mariadb_root_password }}"
+  when: inventory_hostname == groups['db-replicas'][0]
+
+- name: Start MariaDB slave thread
+  mysql_replication:
+    mode: startslave
+    login_user : root
+    login_password: "{{ mariadb_root_password }}"
+  when: inventory_hostname == groups['db-replicas'][0]
+

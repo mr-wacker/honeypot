@@ -1,0 +1,69 @@
+---
+
+### A united playbook to install the whole infrastracture.
+### Tags can be used to run a specific role.
+
+# Update repository information once in 24h, autoremove unused dependecies.
+
+- name: Prepare hosts
+  import_playbook: init.yaml
+
+# Install services.
+
+- name: Setup Bind9 DNS
+  hosts: dns-servers
+  gather_facts: false
+  become: yes
+  roles:
+    - bind
+  tags: bind
+
+- name: Update hosts' DNS configuration
+  hosts: dns-config
+  gather_facts: false
+  become: yes
+  roles:
+    - resolve-config
+  tags: resolve
+
+- name: Setup Nginx frontend
+  hosts: web-servers
+  gather_facts: false
+  become: yes
+  roles:
+    - nginx
+  tags: nginx
+
+- name: Setup Docker
+  hosts: docker
+  gather_facts: false
+  become: yes
+  roles:
+    - docker-install
+  tags: docker
+
+- name: Setup MariaDB Docker containers
+  hosts: db-servers
+  gather_facts: false
+  become: yes
+  roles:
+    - docker-mariadb
+  tags: mariadb
+
+- name: Setup Grafana Docker container
+  hosts: grafana
+  gather_facts: false
+  become: yes
+  roles:
+    - docker-grafana
+  tags: grafana
+
+- name: Setup Cowrie honeypot group, user and a Docker container
+  hosts: honeypot
+  gather_facts: false
+  become: yes
+  roles:
+    - users
+    - docker-cowrie
+  tags: honeypot
+
